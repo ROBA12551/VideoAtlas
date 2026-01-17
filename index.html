@@ -14,9 +14,35 @@
     <!-- Structured Data -->
     <script type="application/ld+json" id="structured-data"></script>
     
-    <!-- Preload Critical Resources -->
+    <!-- Preload Critical Resources - 実際の広告ネットワークを使用 -->
     <link rel="preload" href="/module.js" as="script">
-    <link rel="preload" href="https://ads.example.com/native.js" as="script" crossorigin>
+    <!-- プレロードは実際に使用される広告スクリプトに対してのみ -->
+    <script>
+        // デバイスと地域に基づいて動的に広告スクリプトを読み込む
+        function getAdNetwork() {
+            const geo = navigator.language.split('-')[1]?.toLowerCase() || 'us';
+            const isMobile = window.innerWidth < 768;
+            
+            if (geo === 'us') {
+                return isMobile ? 
+                    'https://cdn.adsafeprotected.com/iasPET.1.js' : 
+                    'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
+            } else if (['uk', 'ca', 'au'].includes(geo)) {
+                return 'https://cdn.adnxs.com/ast/ast.js';
+            } else {
+                return 'https://www.googletagservices.com/tag/js/gpt.js';
+            }
+        }
+        
+        // 広告スクリプトを動的にプレロード
+        const adScriptUrl = getAdNetwork();
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.href = adScriptUrl;
+        link.as = 'script';
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+    </script>
     
     <!-- Ad Placeholder Styles -->
     <style>
@@ -38,6 +64,7 @@
         .header { 
             background: linear-gradient(90deg, #1a1a1a, #2a2a2a);
             padding: 15px; text-align: center; border-bottom: 2px solid #333;
+            display: none; /* 初期状態では非表示 */
         }
         .seo-text { 
             font-size: 0.9rem; line-height: 1.4; color: #aaa;
@@ -45,11 +72,27 @@
         }
         
         /* Ad Containers */
-        .native-ad { 
+        .ad-slot { 
             margin: 20px auto; width: 100%; max-width: 1200px;
             min-height: 250px; background: #1a1a1a; 
             border: 1px dashed #333; display: flex;
             align-items: center; justify-content: center;
+            position: relative;
+        }
+        .ad-slot::before {
+            content: 'Advertisement';
+            position: absolute; top: 5px; left: 5px;
+            font-size: 10px; color: #666; letter-spacing: 0.5px;
+        }
+        .native-ad { 
+            min-height: 250px;
+        }
+        .video-ad {
+            min-height: 360px;
+        }
+        .banner-ad {
+            min-height: 90px;
+            max-width: 728px;
         }
         .infeed-ad { 
             margin: 30px auto; width: 100%; max-width: 728px;
@@ -84,6 +127,7 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); display: none;
             align-items: center; justify-content: center;
+            font-size: 48px; color: white;
         }
         .duration { 
             position: absolute; bottom: 10px; right: 10px;
@@ -137,6 +181,17 @@
             color: #4dabf7; text-decoration: none; font-size: 0.9rem;
             padding: 5px 0; display: block;
         }
+        
+        /* Fallback Ad Style */
+        .ad-fallback {
+            padding: 20px; text-align: center; color: #666;
+            font-size: 0.9rem; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .ad-fallback a {
+            color: #4dabf7; text-decoration: none; margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -160,14 +215,18 @@
     </div>
     
     <!-- Header with SEO Text -->
-    <header class="header" style="display: none;">
+    <header class="header">
         <h1 id="page-h1"></h1>
         <div class="seo-text" id="seo-description"></div>
     </header>
     
     <!-- Native Ad Container -->
-    <div class="native-ad" id="native-ad-top">
+    <div class="ad-slot native-ad" id="native-ad-top">
         <!-- Native ad will be injected here -->
+        <div class="ad-fallback">
+            <div>Advertisement</div>
+            <a href="#" onclick="loadAd(this.parentElement)">Load ad</a>
+        </div>
     </div>
     
     <!-- Breadcrumb -->
@@ -179,7 +238,12 @@
     </div>
     
     <!-- In-Feed Ad -->
-    <div class="infeed-ad" id="infeed-ad"></div>
+    <div class="ad-slot banner-ad" id="infeed-ad">
+        <div class="ad-fallback">
+            <div>Advertisement</div>
+            <a href="#" onclick="loadAd(this.parentElement)">Load ad</a>
+        </div>
+    </div>
     
     <!-- FAQ Schema Section -->
     <section class="faq-section" id="faq-section"></section>
@@ -193,12 +257,24 @@
     <!-- Scripts -->
     <script src="/module.js"></script>
     <script>
+        // Simple fallback ad loader
+        function loadAd(container) {
+            const fallbackAds = [
+                '<a href="https://www.example.com" target="_blank" style="color: #4dabf7; text-decoration: none;">Example Premium Service - Try Now</a>',
+                '<a href="https://www.anotherexample.com" target="_blank" style="color: #4dabf7; text-decoration: none;">Another Service - Free Trial</a>',
+                '<div style="color: #666;">Advertisement: Premium content available</div>'
+            ];
+            const randomAd = fallbackAds[Math.floor(Math.random() * fallbackAds.length)];
+            container.innerHTML = randomAd;
+        }
+        
         // Initialize platform
         window.PLATFORM_CONFIG = {
             adNetwork: 'mixed',
             geo: 'auto',
             density: 'high',
-            sessionStart: Date.now()
+            sessionStart: Date.now(),
+            debug: true
         };
     </script>
 </body>
