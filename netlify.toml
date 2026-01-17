@@ -1,0 +1,84 @@
+[build]
+  publish = "dist"
+  functions = "functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[context.production]
+  environment = { NODE_ENV = "production" }
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' *.adnetwork1.com *.adnetwork2.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: *.videoapi.com; media-src https: *.videoapi.com; frame-src https: *.videoapi.com; connect-src 'self' *.adnetwork1.com *.adnetwork2.com *.videoapi.com"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/api/sitemap/main"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/sitemap-:shard.xml"
+  to = "/api/sitemap/:shard"
+  status = 200
+
+[[redirects]]
+  from = "/ads.txt"
+  to = "/api/ads"
+  status = 200
+
+[[redirects]]
+  from = "/robots.txt"
+  to = "/api/robots"
+  status = 200
+
+# Cache rules
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, s-maxage=7200"
+    CDN-Cache-Control = "public, max-age=7200"
+    Vary = "Accept-Encoding, Country, Device"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Age verification bypass for legal pages
+[[redirects]]
+  from = "/dmca"
+  to = "/legal/dmca.html"
+  status = 200
+  force = true
+  conditions = {Cookie = ["age_verified=true"]}
+
+[[redirects]]
+  from = "/privacy"
+  to = "/legal/privacy.html"
+  status = 200
+  force = true
+  conditions = {Cookie = ["age_verified=true"]}
+
+[[redirects]]
+  from = "/terms"
+  to = "/legal/terms.html"
+  status = 200
+  force = true
+  conditions = {Cookie = ["age_verified=true"]}
+
+# Edge Functions configuration
+[functions]
+  node_bundler = "esbuild"
+  directory = "functions"
